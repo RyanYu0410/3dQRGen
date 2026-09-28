@@ -41,19 +41,19 @@ def generate(folder,url,diameter=35,grip=True,style="hollow"):
  module=(diameter-2)/(math.sqrt(2)*(n+padding))
  minimum=.6 if style=='hollow' else .8
  if module<minimum:raise ValueError(f'This link is too detailed at {diameter:g} mm for the 0.4 mm nozzle. Increase diameter to at least {math.ceil(2+minimum*math.sqrt(2)*(n+padding))} mm or use a shorter URL.')
- folder=Path(folder);folder.mkdir(parents=True,exist_ok=True);base=meshpoly(Point(0,0).buffer(diameter/2,resolution=96),.56);half=n*module/2
+ folder=Path(folder);folder.mkdir(parents=True,exist_ok=True);base=meshpoly(Point(0,0).buffer(diameter/2,resolution=96),.84);half=n*module/2
  if style not in ('hollow','solid'):raise ValueError('Unknown model style.')
  if style=='hollow':
   disk=Point(0,0).buffer(diameter/2,resolution=96);ring=disk.difference(Point(0,0).buffer(diameter/2-1.2,resolution=96));ribs=[ring]
   for i in range(n+1):
-   t=-half+i*module;ribs += [box(-half-.2,t-.2,half+.2,t+.2),box(t-.2,-half-.2,t+.2,half+.2)]
+   t=-half+i*module;ribs += [box(-half-.24,t-.24,half+.24,t+.24),box(t-.24,-half-.24,t+.24,half+.24)]
   for angle in np.pi/4+np.arange(4)*np.pi/2:
    start=(half*np.sign(np.cos(angle)),half*np.sign(np.sin(angle)));end=((diameter/2-.6)*np.cos(angle),(diameter/2-.6)*np.sin(angle));ribs.append(LineString([start,end]).buffer(.5))
-  base=meshpoly(unary_union(ribs).buffer(.0001),.56)
+  base=meshpoly(unary_union(ribs).buffer(.0001),.84)
  chunks=[]
  for row,col in zip(*np.where(a)):
   # Microscopic gap avoids non-manifold diagonal point contacts.
-  chunks.append(meshpoly(box(-half+col*module+.001,half-(row+1)*module+.001,-half+(col+1)*module-.001,half-row*module-.001),.28,.56))
+  chunks.append(meshpoly(box(-half+col*module+.001,half-(row+1)*module+.001,-half+(col+1)*module-.001,half-row*module-.001),.64,.76))
  qr=trimesh.util.concatenate(chunks)
  if grip:
   x=diameter/2-2.;pieces=[base]
@@ -62,14 +62,16 @@ def generate(folder,url,diameter=35,grip=True,style="hollow"):
   # Peripheral foot patches leave QR + quiet zone untouched as far as practical.
   for sign in [-1,1]:
    yl,yh=(-12.4,-10) if sign<0 else (10,12.4)
-   pieces.append(block([x-6,yl,0],[x+1,yh,.84]));pieces.append(block([x-1.4,yl,0],[x+1.4,yh,11.12]))
+   pieces.append(block([x-6,yl,0],[x+1,yh,1.12]));pieces.append(block([x-1.4,yl,0],[x+1.4,yh,11.12]))
   pieces.append(block([x-1.4,-12.4,10],[x+1.4,12.4,11.12]));base=trimesh.boolean.union(pieces,engine='manifold')
  if not base.is_watertight or len(base.split())!=1:raise ValueError('The selected geometry does not join safely. Try a larger diameter or disable the grip.')
  # Validate the encoded QR image independently of physical material/lighting.
  preview=qrcode.make(url,error_correction=qrcode.constants.ERROR_CORRECT_M,box_size=12,border=4).convert('RGB');decoded=zxingcpp.read_barcode(np.asarray(preview))
  if not decoded or decoded.text!=url:raise ValueError('QR image failed its scan check.')
  preview.save(folder/'qr.png');base.export(folder/'base.stl');qr.export(folder/'qr_pattern.stl');make3mf(folder/'QR_project.3mf',base,qr)
- # STL is a combined surface assembly; Bambu merges touching parts during slicing.
- trimesh.util.concatenate([base,qr]).export(folder/'QR_single_color.stl')
- (folder/'PRINT_README.txt').write_text(f'''URL: {url}\nDiameter: {diameter:g}mm; modules: {n}; module pitch: {module:.3f}mm\nBase 0.56mm + raised QR 0.28mm. Garage grip: {grip}.\nQR_project.3mf contains a light base and dark QR as one assembly. Color metadata is a suggestion: confirm material assignment in Bambu Studio, select A1, correct nozzle, material and plate, then slice. This is not a pre-sliced print job.\nModel style: {style}. Hollow style includes visible connecting ribs and is decorative, not scan-verified. With only black filament, this is a relief prototype: scanning is not guaranteed. For reliable contrast, use a light base and dark QR or apply contrasting color after printing. Garage grip may obstruct oblique views and needs a physical bridge/strength test.\nThe separate base.stl and qr_pattern.stl share coordinates: load together as parts of a single object; do not auto-arrange independently. QR_single_color.stl combines those surfaces for a one-color print.\nThe PNG was decoded successfully; no physical print scan test has been performed. No print was sent to a printer.\n''')
+ # Fuse overlapping QR blocks into the grid: one watertight printable body.
+ united=trimesh.boolean.union([base,*chunks],engine='manifold')
+ if not united.is_watertight or len(united.split())!=1:raise ValueError('QR connections failed the single-body check.')
+ united.export(folder/'QR_single_color.stl')
+ (folder/'PRINT_README.txt').write_text(f'''URL: {url}\nDiameter: {diameter:g}mm; modules: {n}; module pitch: {module:.3f}mm\nBase 0.84mm + raised QR 0.56mm (0.08mm overlap). Garage grip: {grip}.\nQR_project.3mf contains a light base and dark QR as one assembly. Color metadata is a suggestion: confirm material assignment in Bambu Studio, select A1, correct nozzle, material and plate, then slice. This is not a pre-sliced print job.\nModel style: {style}. Hollow style includes visible connecting ribs and is decorative, not scan-verified. With only black filament, this is a relief prototype: scanning is not guaranteed. For reliable contrast, use a light base and dark QR or apply contrasting color after printing. Garage grip may obstruct oblique views and needs a physical bridge/strength test.\nThe separate base.stl and qr_pattern.stl share coordinates: load together as parts of a single object; do not auto-arrange independently. QR_single_color.stl fuses all parts into one watertight body for a one-color print.\nThe PNG was decoded successfully; no physical print scan test has been performed. No print was sent to a printer.\n''')
  return dict(url=url,diameter=diameter,modules=n,module_mm=round(module,2),grip=grip,style=style,digital_scan='passed')

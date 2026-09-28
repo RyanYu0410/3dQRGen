@@ -28,6 +28,8 @@ The garage grip has 20 mm between upright legs and a top bar 10 mm above the bas
 
 Generated files stay in `generated/`. The server listens only on this Mac, with a per-launch request token. Stop using Ctrl-C in the launcher terminal. Python dependencies are in `.venv`; reinstall if relocating to a different machine.
 
-## Latest example
+## Reinforced 35 mm example
 
-The included `QR_35mm_fast_A1.3mf` and `QR_single_color.stl` files contain the longer GitHub wiki URL model: 35 mm disc, 20 mm grip opening, 0.56 mm base and 0.28 mm raised pattern. The sliced A1 0.4 mm nozzle project assumes Generic PLA and Textured PEI Plate. Estimated model printing is 7m 16s, or 13m 37s including preparation, using 0.96 g. The slicer reports floating regions at the grip; inspect bridging before printing. Physical scanning and strength remain unverified. A three-minute design has not been implemented.
+Use `QR_35mm_reinforced_A1.3mf` for the latest A1 0.4 mm nozzle slice. `QR_single_color.stl` is now a boolean-fused, single watertight body, verified after export. The supporting grid is 0.48 mm wide and 0.84 mm thick; raised QR detail is 0.56 mm tall with 0.08 mm internal overlap to fuse it to the grid. Disc diameter stays 35 mm and the garage opening stays 20 mm wide.
+
+Estimated model printing is 9m 2s, or 15m 23s including preparation, with 1.48 g of filament. The profile assumes Generic PLA and Textured PEI Plate. The upright garage bar still needs bridge/strength testing. Physical scanning remains unverified. The older `QR_35mm_fast_A1.3mf` is retained as a thinner alternative, not the reinforced version. A three-minute design has not been implemented.
