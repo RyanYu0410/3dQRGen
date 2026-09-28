@@ -1,0 +1,9 @@
+manifold3d==3.5.4
+numpy==2.0.2
+pillow==11.3.0
+qrcode==8.2
+scipy==1.13.1
+shapely==2.0.7
+triangle==20250106
+trimesh==4.12.2
+zxing-cpp==2.2.0
